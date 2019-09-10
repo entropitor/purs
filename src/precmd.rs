@@ -2,26 +2,38 @@ use ansi_term::Colour::{Blue, Cyan, Green, Purple, Red};
 use ansi_term::{ANSIGenericString, ANSIStrings};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use git2::{self, Repository, StatusOptions};
-use regex::Regex;
 use std::env;
+use std::path::PathBuf;
 use tico::tico;
 
-fn shorten_path(cwd: &str) -> String {
-    let friendly_path = match dirs::home_dir() {
-        Some(path) => Regex::new(path.to_str().unwrap())
-            .unwrap()
-            .replace(cwd, "~"),
-        _ => return String::from(""),
-    };
+fn shorten_path(cwd: &str, git_path: Option<&str>) -> String {
+    let home_dir = dirs::home_dir().or(Some(PathBuf::from("/"))).unwrap();
+    let home_dir_str = home_dir.to_str().unwrap();
 
-    tico(&friendly_path)
+    let friendly_path = cwd.replace(home_dir_str, "~");
+    let friendly_git_path =
+        git_path.map(|path| path.replace(home_dir_str, "~").replace("/.git/", ""));
+
+    match friendly_git_path {
+        Some(friendly_git_path) => {
+            let relative_path = friendly_path
+                .replace(&friendly_git_path, "/")
+                .replace("//", "/");
+            format!(
+                "{} {}",
+                Blue.paint(tico(&friendly_git_path)),
+                Green.paint(relative_path)
+            )
+        }
+        None => Blue.paint(tico(&friendly_path)).to_string(),
+    }
 }
 
 fn repo_status(r: &Repository, detailed: bool) -> Option<String> {
     let mut out = vec![];
 
     if let Some(name) = get_head_shortname(r) {
-        out.push(Cyan.paint(name));
+        out.push(Cyan.paint(format!("{} ", name)));
     }
 
     if !detailed {
@@ -76,6 +88,7 @@ fn get_ahead_behind(r: &Repository) -> Option<(usize, usize)> {
     let head_name = head.shorthand()?;
     let head_branch = r.find_branch(head_name, git2::BranchType::Local).ok()?;
     let upstream = head_branch.upstream().ok()?;
+
     let head_oid = head.target()?;
     let upstream_oid = upstream.get().target()?;
 
@@ -193,13 +206,16 @@ fn get_action(r: &Repository) -> Option<String> {
 
 pub fn display(sub_matches: &ArgMatches<'_>) {
     let my_path = env::current_dir().unwrap();
-    let display_path = Blue.paint(shorten_path(my_path.to_str().unwrap()));
 
-    let branch = match Repository::discover(my_path) {
-        Ok(repo) => repo_status(&repo, sub_matches.is_present("git-detailed")),
-        Err(_e) => None,
-    };
+    let repo = Repository::discover(my_path.to_path_buf()).ok();
+    let branch = repo
+        .as_ref()
+        .and_then(|repo| repo_status(&repo, sub_matches.is_present("git-detailed")));
+    let git_path = repo.as_ref().and_then(|repo| repo.path().to_str());
+
     let display_branch = Cyan.paint(branch.unwrap_or_default());
+
+    let display_path = shorten_path(my_path.to_str().unwrap(), git_path);
 
     println!();
     println!("{} {}", display_path, display_branch);
