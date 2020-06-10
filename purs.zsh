@@ -13,6 +13,6 @@ zle -N zle-keymap-select
 autoload -Uz add-zsh-hook
 
 function _prompt_purs_precmd() {
-  $(dirname ${BASH_SOURCE[0]:-${(%):-%x}})/target/release/purs precmd
+  $(dirname ${BASH_SOURCE[0]:-${(%):-%x}})/target/release/purs precmd --git-detailed
 }
 add-zsh-hook precmd _prompt_purs_precmd
