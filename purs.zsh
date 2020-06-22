@@ -1,5 +1,3 @@
-$(cd $(dirname ${BASH_SOURCE[0]:-${(%):-%x}}) && cargo build --release 2> /dev/null)
-
 function zle-line-init zle-keymap-select {
   local exit_code="$?"
   PROMPT="$PREPROMPT `$(dirname ${BASH_SOURCE[0]:-${(%):-%x}})/target/release/purs prompt -k "$KEYMAP" -r "$exit_code" --venv "${${VIRTUAL_ENV:t}%-*}"`"
