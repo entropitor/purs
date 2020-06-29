@@ -205,7 +205,11 @@ fn get_action(r: &Repository) -> Option<String> {
 }
 
 pub fn display(sub_matches: &ArgMatches<'_>) {
-    let my_path = env::current_dir().unwrap();
+    let my_path = sub_matches
+        .value_of("current-dir")
+        .map(|dir| PathBuf::from(dir))
+        .or_else(|| env::current_dir().ok())
+        .unwrap();
 
     let repo = Repository::discover(my_path.to_path_buf()).ok();
     let branch = repo
@@ -222,9 +226,16 @@ pub fn display(sub_matches: &ArgMatches<'_>) {
 }
 
 pub fn cli_arguments<'a>() -> App<'a, 'a> {
-    SubCommand::with_name("precmd").arg(
-        Arg::with_name("git-detailed")
-            .long("git-detailed")
-            .help("Prints detailed git status"),
-    )
+    SubCommand::with_name("precmd")
+        .arg(
+            Arg::with_name("git-detailed")
+                .long("git-detailed")
+                .help("Prints detailed git status"),
+        )
+        .arg(
+            Arg::with_name("current-dir")
+                .takes_value(true)
+                .long("current-dir")
+                .help("Overwrite the current directory"),
+        )
 }
