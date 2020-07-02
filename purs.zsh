@@ -1,6 +1,6 @@
 HERE=$(dirname ${BASH_SOURCE[0]:-${(%):-%x}})
 function _prompt_purs () {
-  local exit_code="$0"
+  local exit_code="$1"
   PROMPT="$(_preprompt_purs) `$HERE/target/release/purs prompt -k "$KEYMAP" -r "$exit_code" --venv "${${VIRTUAL_ENV:t}%-*}"`"
 }
 
