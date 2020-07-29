@@ -26,6 +26,7 @@ function _prompt_purs_precmd() {
 add-zsh-hook precmd _prompt_purs_precmd
 
 function _preprompt_purs () {
-  echo "[%{$fg[magenta]%}$(kubectl config current-context)%{$reset_color%}] "
+  local context=$(kubectl config current-context 2>/dev/null)
+  echo "[%{$fg[magenta]%}$context%{$reset_color%}] "
 }
 _prompt_purs 0
